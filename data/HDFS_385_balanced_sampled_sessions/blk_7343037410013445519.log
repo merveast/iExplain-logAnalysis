@@ -1,0 +1,8 @@
+081111 033255 18540 INFO dfs.DataNode$DataXceiver: Receiving block blk_7343037410013445519 src: /10.251.111.37:60482 dest: /10.251.111.37:50010
+081111 033255 18859 INFO dfs.DataNode$DataXceiver: Receiving block blk_7343037410013445519 src: /10.251.111.37:39898 dest: /10.251.111.37:50010
+081111 033255 31 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand4/_temporary/_task_200811101024_0009_m_001777_1/part-01777. blk_7343037410013445519
+081111 033356 18564 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_7343037410013445519 terminating
+081111 033356 18564 INFO dfs.DataNode$PacketResponder: PacketResponder blk_7343037410013445519 2 Exception java.io.EOFException
+081111 033356 18859 INFO dfs.DataNode$DataXceiver: writeBlock blk_7343037410013445519 received exception java.net.SocketTimeoutException
+081111 033408 18540 INFO dfs.DataNode$BlockReceiver: Exception in receiveBlock for block blk_7343037410013445519 java.io.IOException: Connection reset by peer
+081111 033408 18540 INFO dfs.DataNode$DataXceiver: writeBlock blk_7343037410013445519 received exception java.io.IOException: Connection reset by peer

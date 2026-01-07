@@ -1,0 +1,4 @@
+081110 012003 33 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000576_0/part-00576. blk_6648413342399866677
+081110 012003 5208 INFO dfs.DataNode$DataXceiver: Receiving block blk_6648413342399866677 src: /10.251.75.163:54117 dest: /10.251.75.163:50010
+081110 012003 5356 INFO dfs.DataNode$DataXceiver: Receiving block blk_6648413342399866677 src: /10.251.75.163:33016 dest: /10.251.75.163:50010
+081110 012007 5356 INFO dfs.DataNode$DataXceiver: writeBlock blk_6648413342399866677 received exception java.io.IOException: Could not read from stream

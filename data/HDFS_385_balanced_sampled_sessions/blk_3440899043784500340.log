@@ -1,0 +1,2 @@
+081110 230250 16809 INFO dfs.DataNode$DataXceiver: Receiving block blk_3440899043784500340 src: /10.251.65.237:49026 dest: /10.251.65.237:50010
+081110 230250 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt3/_temporary/_task_200811101024_0007_m_001867_0/part-01867. blk_3440899043784500340

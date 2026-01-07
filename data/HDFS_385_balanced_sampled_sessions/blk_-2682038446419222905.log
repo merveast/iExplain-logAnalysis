@@ -1,0 +1,2 @@
+081110 011133 26 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000144_0/part-00144. blk_-2682038446419222905
+081110 011133 5252 INFO dfs.DataNode$DataXceiver: Receiving block blk_-2682038446419222905 src: /10.251.67.4:46937 dest: /10.251.67.4:50010

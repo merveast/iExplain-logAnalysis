@@ -1,0 +1,4 @@
+081110 000145 29 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_200811092030_0002_r_000227_0/part-00227. blk_-3846169931593303657
+081110 000145 4508 INFO dfs.DataNode$DataXceiver: Receiving block blk_-3846169931593303657 src: /10.250.7.146:45343 dest: /10.250.7.146:50010
+081110 000145 4615 INFO dfs.DataNode$DataXceiver: Receiving block blk_-3846169931593303657 src: /10.250.7.146:41135 dest: /10.250.7.146:50010
+081110 000147 4615 INFO dfs.DataNode$DataXceiver: writeBlock blk_-3846169931593303657 received exception java.io.IOException: Could not read from stream

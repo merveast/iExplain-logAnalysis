@@ -1,0 +1,2 @@
+081110 150625 13054 INFO dfs.DataNode$DataXceiver: Receiving block blk_8862415961498614965 src: /10.251.106.50:45351 dest: /10.251.106.50:50010
+081110 150625 27 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/sortrand2/_temporary/_task_200811101024_0003_r_000190_0/part-00190. blk_8862415961498614965

@@ -1,0 +1,4 @@
+081111 090102 24994 INFO dfs.DataNode$DataXceiver: Receiving block blk_538182766624859527 src: /10.250.14.38:56907 dest: /10.250.14.38:50010
+081111 090102 25093 INFO dfs.DataNode$DataXceiver: Receiving block blk_538182766624859527 src: /10.250.14.38:49458 dest: /10.250.14.38:50010
+081111 090102 28 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand8/_temporary/_task_200811101024_0015_m_000361_0/part-00361. blk_538182766624859527
+081111 090105 24994 INFO dfs.DataNode$DataXceiver: writeBlock blk_538182766624859527 received exception java.io.IOException: Could not read from stream
