@@ -1,7 +1,7 @@
 
 # Directory paths
 #PROJECT_ROOT = '/home/user/Documents/iExplain-logAnalysis'
-PROJECT_ROOT= '/Users/merveastekin/Desktop/iExplain-logAnalysis/'
+PROJECT_ROOT= '/Users/merveastekin/Desktop/iExplain-logAnalysis'
 LOG_DIR = f'{PROJECT_ROOT}/logs'
 DATA_DIR = f'{PROJECT_ROOT}/data'
 WORK_DIR = f'{PROJECT_ROOT}/tests/work_dir'
@@ -17,7 +17,14 @@ DESIGN = "MA-few"
 
 # Model/LLM settings
 LLM_SERVICE = "ollama"
-LLM_MODEL = "qwen2.5-coder:7b-instruct" 
+#LLM_MODEL = "qwen3:4b-thinking"  
+#LLM_MODEL = "qwen3:4b-instruct" 
+#LLM_MODEL = "qwen2.5-coder:7b-instruct" 
+#LLM_MODEL = "codegemma:7b-instruct"
+#LLM_MODEL = "gemma3:4b"
+LLM_MODEL = "gpt-oss:20b"
+#LLM_MODEL = "deepseek-coder:6.7b-instruct"
+
 TEMPERATURE = 0.0
 
 LLM_CONFIG = {
@@ -25,9 +32,10 @@ LLM_CONFIG = {
     "config_list": [
         {
             "model": LLM_MODEL,
-            "api_base": "http://localhost:11434",
+            "api_base": "http://localhost:11434/v1",
             "api_type": LLM_SERVICE,
-            "num_ctx": 131072,
+            "num_ctx": 262144, #131072,
+            "stream": False,
         }
     ],
     "temperature": TEMPERATURE
@@ -125,6 +133,154 @@ SYS_MSG_SINGLE_LOG_ANALYSIS_FEW_SHOT = """
             OUTPUT: 1
         """
 
+SYS_MSG_SINGLE_LOG_ANALYSIS_TWO_SHOT = """
+        You are an intelligent agent for log anomaly detection.
+
+        Task:
+        Given a session-based set of raw log messages, determine whether the session represents normal system behavior (0) or anomalous behavior (1).
+
+        Instructions:
+        1. **Parse the logs**:
+        - Each log line may contain a header (timestamp, log level, class, etc.).
+        - Remove or ignore these headers and extract the main log message body describing the event.
+        - Preserve message order.
+
+        2. **Analyze the session**:
+        - Review the sequence of message bodies, consider the contextual information of the sequence.
+        - Identify anomalies from two perspectives:
+            a. **Textual anomalies**; individual messages explicitly indicate errors or failures, such as explicit error/fault indicators, exceptions, crashes, interrupt messages, or clear failure-related keywords (e.g., "error", "fail", "exception", "crash", "interrupt", "fatal").
+            b. **Behavioral anomalies**; whether the overall sequence is consistent with normal execution flow, or shows irregularities such as missing or skipped expected events, unusual ordering, repetitive failures, or abrupt terminations.
+
+        3. **Decision rule**:
+        - If either textual or behavioral anomalies are detected, label the session as anomalous (1).
+        - Otherwise, label it as normal (0).
+
+        4. **Output**:
+        - Provide only a binary label (0 or 1):
+            0 → Normal session
+            1 → Anomalous session
+        - No punctuation, explanation, or extra text.
+
+        Here are a few examples of log sequences and their classifications:
+        Example 1:
+            LOG MESSAGES:
+                081111 094743 25776 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.73.188:57743 dest: /10.251.73.188:50010
+                081111 094743 26099 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.73.188:54097 dest: /10.251.73.188:50010
+                081111 094743 28 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand8/_temporary/_task_200811101024_0015_m_001611_0/part-01611. blk_6667093857658912327
+                081111 094744 25996 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.106.37:53888 dest: /10.251.106.37:50010
+                081111 094828 26100 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_6667093857658912327 terminating
+                081111 094828 26100 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                081111 094828 29 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.37:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094828 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.73.188:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094828 34 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.110.160:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094829 25777 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_6667093857658912327 terminating
+                081111 094829 25777 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                081111 094829 25997 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_6667093857658912327 terminating
+                081111 094829 25997 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.106.37
+            OUTPUT: 0
+        Example 2:
+            LOG MESSAGES:
+                081110 010402 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000269_0/part-00269. blk_-152459496294138933
+                081110 010402 5086 INFO dfs.DataNode$DataXceiver: Receiving block blk_-152459496294138933 src: /10.251.74.134:53158 dest: /10.251.74.134:50010
+                081110 010402 5110 INFO dfs.DataNode$DataXceiver: Receiving block blk_-152459496294138933 src: /10.251.74.134:51159 dest: /10.251.74.134:50010
+                081110 010405 5086 INFO dfs.DataNode$DataXceiver: writeBlock blk_-152459496294138933 received exception java.io.IOException: Could not read from stream
+            OUTPUT: 1
+        """
+
+
+SYS_MSG_SINGLE_LOG_ANALYSIS_FOUR_SHOT = """
+        You are an intelligent agent for log anomaly detection.
+
+        Task:
+        Given a session-based set of raw log messages, determine whether the session represents normal system behavior (0) or anomalous behavior (1).
+
+        Instructions:
+        1. **Parse the logs**:
+        - Each log line may contain a header (timestamp, log level, class, etc.).
+        - Remove or ignore these headers and extract the main log message body describing the event.
+        - Preserve message order.
+
+        2. **Analyze the session**:
+        - Review the sequence of message bodies, consider the contextual information of the sequence.
+        - Identify anomalies from two perspectives:
+            a. **Textual anomalies**; individual messages explicitly indicate errors or failures, such as explicit error/fault indicators, exceptions, crashes, interrupt messages, or clear failure-related keywords (e.g., "error", "fail", "exception", "crash", "interrupt", "fatal").
+            b. **Behavioral anomalies**; whether the overall sequence is consistent with normal execution flow, or shows irregularities such as missing or skipped expected events, unusual ordering, repetitive failures, or abrupt terminations.
+
+        3. **Decision rule**:
+        - If either textual or behavioral anomalies are detected, label the session as anomalous (1).
+        - Otherwise, label it as normal (0).
+
+        4. **Output**:
+        - Provide only a binary label (0 or 1):
+            0 → Normal session
+            1 → Anomalous session
+        - No punctuation, explanation, or extra text.
+
+        Here are a few examples of log sequences and their classifications:
+        Example 1:
+            LOG MESSAGES:
+                081111 094743 25776 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.73.188:57743 dest: /10.251.73.188:50010
+                081111 094743 26099 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.73.188:54097 dest: /10.251.73.188:50010
+                081111 094743 28 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand8/_temporary/_task_200811101024_0015_m_001611_0/part-01611. blk_6667093857658912327
+                081111 094744 25996 INFO dfs.DataNode$DataXceiver: Receiving block blk_6667093857658912327 src: /10.251.106.37:53888 dest: /10.251.106.37:50010
+                081111 094828 26100 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_6667093857658912327 terminating
+                081111 094828 26100 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                081111 094828 29 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.37:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094828 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.73.188:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094828 34 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.110.160:50010 is added to blk_6667093857658912327 size 67108864
+                081111 094829 25777 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_6667093857658912327 terminating
+                081111 094829 25777 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                081111 094829 25997 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_6667093857658912327 terminating
+                081111 094829 25997 INFO dfs.DataNode$PacketResponder: Received block blk_6667093857658912327 of size 67108864 from /10.251.106.37
+            OUTPUT: 0
+        Example 2:
+            LOG MESSAGES:
+                081111 061856 34 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt5/_temporary/_task_200811101024_0012_m_001014_0/part-01014. blk_4615226180823858743
+                081111 061857 21831 INFO dfs.DataNode$DataXceiver: Receiving block blk_4615226180823858743 src: /10.251.30.179:36961 dest: /10.251.30.179:50010
+            OUTPUT: 1
+        Example 3:
+            LOG MESSAGES:
+                081110 010402 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000269_0/part-00269. blk_-152459496294138933
+                081110 010402 5086 INFO dfs.DataNode$DataXceiver: Receiving block blk_-152459496294138933 src: /10.251.74.134:53158 dest: /10.251.74.134:50010
+                081110 010402 5110 INFO dfs.DataNode$DataXceiver: Receiving block blk_-152459496294138933 src: /10.251.74.134:51159 dest: /10.251.74.134:50010
+                081110 010405 5086 INFO dfs.DataNode$DataXceiver: writeBlock blk_-152459496294138933 received exception java.io.IOException: Could not read from stream
+            OUTPUT: 1
+        Example 4:
+            LOG MESSAGES: 
+                081109 203706 215 INFO dfs.DataNode$DataXceiver: Receiving block blk_448592873889985922 src: /10.251.123.99:58494 dest: /10.251.123.99:50010
+                081109 203706 28 INFO dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: /user/root/rand/_temporary/_task_200811092030_0001_m_000088_0/part-00088. blk_448592873889985922
+                081109 203708 215 INFO dfs.DataNode$DataXceiver: Receiving block blk_448592873889985922 src: /10.251.123.99:37942 dest: /10.251.123.99:50010
+                081109 203708 222 INFO dfs.DataNode$DataXceiver: Receiving block blk_448592873889985922 src: /10.251.106.10:50778 dest: /10.251.106.10:50010
+                081109 203810 216 INFO dfs.DataNode$PacketResponder: PacketResponder 1 for block blk_448592873889985922 terminating
+                081109 203810 216 INFO dfs.DataNode$PacketResponder: Received block blk_448592873889985922 of size 67108864 from /10.251.123.99
+                081109 203810 219 INFO dfs.DataNode$PacketResponder: PacketResponder 2 for block blk_448592873889985922 terminating
+                081109 203810 219 INFO dfs.DataNode$PacketResponder: Received block blk_448592873889985922 of size 67108864 from /10.251.123.99
+                081109 203810 223 INFO dfs.DataNode$PacketResponder: PacketResponder 0 for block blk_448592873889985922 terminating
+                081109 203810 223 INFO dfs.DataNode$PacketResponder: Received block blk_448592873889985922 of size 67108864 from /10.251.106.10
+                081109 203810 29 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.123.99:50010 is added to blk_448592873889985922 size 67108864
+                081109 203810 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.10:50010 is added to blk_448592873889985922 size 67108864
+                081109 203810 31 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.71.146:50010 is added to blk_448592873889985922 size 67108864
+                081109 212617 13 INFO dfs.DataBlockScanner: Verification succeeded for blk_448592873889985922
+                081109 213435 13 INFO dfs.DataBlockScanner: Verification succeeded for blk_448592873889985922
+                081109 214358 2693 WARN dfs.DataNode$DataXceiver: 10.251.71.146:50010:Got exception while serving blk_448592873889985922 to /10.251.194.245:
+                081109 214416 2725 WARN dfs.DataNode$DataXceiver: 10.251.123.99:50010:Got exception while serving blk_448592873889985922 to /10.251.67.4:
+                081109 214432 2694 INFO dfs.DataNode$DataXceiver: 10.251.71.146:50010 Served block blk_448592873889985922 to /10.251.194.245
+                081109 235611 13 INFO dfs.DataBlockScanner: Verification succeeded for blk_448592873889985922
+                081110 103054 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.delete: blk_448592873889985922 is added to invalidSet of 10.251.106.10:50010
+                081110 103054 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.delete: blk_448592873889985922 is added to invalidSet of 10.251.123.99:50010
+                081110 103054 30 INFO dfs.FSNamesystem: BLOCK* NameSystem.delete: blk_448592873889985922 is added to invalidSet of 10.251.71.146:50010
+                081110 103613 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+                081110 103613 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+                081110 103731 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+                081110 103731 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+                081110 104629 27 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: addStoredBlock request received for blk_448592873889985922 on 10.251.106.10:50010 size 67108864 But it does not belong to any file.
+                081110 104629 27 INFO dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.10:50010 is added to blk_448592873889985922 size 67108864
+                081110 105203 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+                081110 105203 19 INFO dfs.FSDataset: Deleting block blk_448592873889985922 file /mnt/hadoop/dfs/data/current/blk_448592873889985922
+            OUTPUT: 1
+        """
+
+
 SYS_MSG_LOG_PREPROCESSOR_ZERO_SHOT = """
         You are a log parsing agent in an intent-based log analysis system.
 
@@ -170,7 +326,7 @@ SYS_MSG_LOG_PREPROCESSOR_FEW_SHOT = """
             Extracted Message Body: PacketResponder 1 for block blk_38865049064139660 terminating
         """
 
-SYS_MSG_LOG_ANOMALY_DETECTOR_DETAILED_ZERO_SHOT = """
+SYS_MSG_LOG_ANOMALY_DETECTOR_OLD_ZERO_SHOT = """
         You are an anomaly detection agent.
 
         Task: 
@@ -192,6 +348,95 @@ SYS_MSG_LOG_ANOMALY_DETECTOR_DETAILED_ZERO_SHOT = """
             0 → Normal session
             1 → Anomalous session
         - No punctuation, explanation, or extra text.
+        """
+
+SYS_MSG_LOG_ANOMALY_DETECTOR_OLD_FEW_SHOT = """
+        You are an anomaly detection agent.
+
+        Task: 
+        Analyze the parsed session logs and decide whether the session represents normal or anomalous behavior.
+
+        Instructions:
+        1. Review the sequence of message bodies, consider the contextual information of the sequence.
+        2. Detect anomalies using two perspectives:
+        a. **Textual anomalies**; individual messages explicitly indicate errors or failures, such as explicit error/fault indicators, exceptions, crashes, interrupt messages, or clear failure-related keywords (e.g., "error", "fail", "exception", "crash", "interrupt", "fatal”).
+        b. **Behavioral anomalies**: abnormal log flow or unexpected event patterns:
+            - Missing or skipped expected events (e.g., allocation without storage confirmation)
+            - Repetition of unusual events (e.g., multiple failed write attempts)
+            - Events out of expected order (e.g., block received before allocation)
+            - Inconsistent or incomplete sequences (e.g., receiving without completion)
+            - Timeout or retry patterns that exceed normal thresholds
+            - Unexpected state transitions in the block lifecycle
+        3. Combine both clues to make your decision.
+        4. Output only a binary label (0 or 1):
+            0 → Normal session
+            1 → Anomalous session
+        - No punctuation, explanation, or extra text.
+
+        Here are a few examples of parsed session logs and their classifications:
+        Example 1:
+            Parsed Session Logs:
+                Receiving block blk_6667093857658912327 src: /10.251.73.188:57743 dest: /10.251.73.188:50010
+                Receiving block blk_6667093857658912327 src: /10.251.73.188:54097 dest: /10.251.73.188:50010
+                BLOCK* NameSystem.allocateBlock: /user/root/rand8/_temporary/_task_200811101024_0015_m_001611_0/part-01611. blk_6667093857658912327
+                Receiving block blk_6667093857658912327 src: /10.251.106.37:53888 dest: /10.251.106.37:50010
+                PacketResponder 1 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.37:50010 is added to blk_6667093857658912327 size 67108864
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.73.188:50010 is added to blk_6667093857658912327 size 67108864
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.110.160:50010 is added to blk_6667093857658912327 size 67108864
+                PacketResponder 2 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                PacketResponder 0 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.106.37
+            Output: 0
+               
+        Example 2:
+            Parsed Session Logs:
+                BLOCK* NameSystem.allocateBlock: /user/root/randtxt5/_temporary/_task_200811101024_0012_m_001014_0/part-01014. blk_4615226180823858743
+                Receiving block blk_4615226180823858743 src: /10.251.30.179:36961 dest: /10.251.30.179:50010
+            Output: 1
+                  
+        Example 3:
+            Parsed Session Logs:
+                BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000269_0/part-00269. blk_-152459496294138933
+                Receiving block blk_-152459496294138933 src: /10.251.74.134:53158 dest: /10.251.74.134:50010
+                Receiving block blk_-152459496294138933 src: /10.251.74.134:51159 dest: /10.251.74.134:50010
+                writeBlock blk_-152459496294138933 received exception java.io.IOException: Could not read from stream
+            Output: 1
+        """
+
+
+SYS_MSG_LOG_ANOMALY_DETECTOR_DETAILED_ZERO_SHOT = """
+        You are an anomaly detection agent.
+
+        Task: 
+        Analyze the parsed session logs and decide whether the session represents normal or anomalous behavior.
+
+        Instructions:
+        1. Review the sequence of message bodies, consider the contextual information of the sequence.
+        2. Detect anomalies using two perspectives:
+        a. **Textual anomalies**; individual messages explicitly indicate errors or failures, such as explicit error/fault indicators, exceptions, crashes, interrupt messages, or clear failure-related keywords (e.g., "error", "fail", "exception", "crash", "interrupt", "fatal”).
+        b. **Behavioral anomalies**: abnormal log flow or unexpected event patterns:
+            - Missing or skipped expected events (e.g., allocation without storage confirmation)
+            - Repetition of unusual events (e.g., multiple failed write attempts)
+            - Events out of expected order (e.g., block received before allocation)
+            - Inconsistent or incomplete sequences (e.g., receiving without completion)
+            - Timeout or retry patterns that exceed normal thresholds
+            - Unexpected state transitions in the block lifecycle
+        3. Combine both clues to make your decision.
+        4. Output ONLY a JSON object with the following structure:
+            {
+                "label": 0 or 1,
+                "signals": ["concise phrases describing the most important indicators influencing the decision"]
+            }
+        Output constraints:
+            - The label must be:
+                - 0 → Normal session
+                - 1 → Anomalous session
+            - Signals must be short, factual, and directly grounded in the log content.
+            - Do not include explanations, reasoning steps, or additional text.
+            - Do not include punctuation or text outside the JSON object.
         """
 
 SYS_MSG_LOG_ANOMALY_DETECTOR_DETAILED_FEW_SHOT = """
@@ -508,7 +753,7 @@ SYS_MSG_LOG_ANOMALY_DETECTOR_HDFS_FEW_SHOT = """
         - Successful write operations
         - Storage confirmations from multiple DataNodes (usually 3 for replication)
         - Clean termination of packet responders
-        - No error messages or exceptions
+        - No error messages 
 
         Anomalies can manifest in various ways - obvious errors, incomplete sequences, unusual patterns, or deviations from expected HDFS behavior.
 
@@ -603,7 +848,7 @@ SYS_MSG_LOG_ANOMALY_DETECTOR_HDFS_ZERO_SHOT = """
         - Successful write operations
         - Storage confirmations from multiple DataNodes (usually 3 for replication)
         - Clean termination of packet responders
-        - No error messages or exceptions
+        - No error messages 
 
         Anomalies can manifest in various ways - obvious errors, incomplete sequences, unusual patterns, or deviations from expected HDFS behavior.
 
@@ -704,6 +949,80 @@ SYS_MSG_LOG_ANOMALY_DETECTOR_COT_FEW_SHOT = """
                     ]
                 }
         """
+
+
+SYS_MSG_LOG_ANOMALY_DETECTOR_COT_2_FEW_SHOT = """
+        You are an HDFS system analyst. Analyze each block operation session and classify it as normal or anomalous.
+
+        Process:
+        1. First, think through what you observe in the logs (do not output this)
+        2. Consider: Is this a complete operation? Are there errors? Does anything seem unusual?
+        3. Then provide your classification
+
+        Context:
+        - Common anomalies: errors/exceptions, incomplete operations, missing replication, unusual patterns
+
+        Output ONLY this JSON:
+        {
+            "label": 0 or 1,
+            "signals": ["observation 1", "observation 2", "observation 3"]
+        }
+
+        Here are a few examples of parsed session logs and their classifications from HDFS Distributed Storage System logs:
+        Example 1:
+            Parsed Session Logs:
+                Receiving block blk_6667093857658912327 src: /10.251.73.188:57743 dest: /10.251.73.188:50010
+                Receiving block blk_6667093857658912327 src: /10.251.73.188:54097 dest: /10.251.73.188:50010
+                BLOCK* NameSystem.allocateBlock: /user/root/rand8/_temporary/_task_200811101024_0015_m_001611_0/part-01611. blk_6667093857658912327
+                Receiving block blk_6667093857658912327 src: /10.251.106.37:53888 dest: /10.251.106.37:50010
+                PacketResponder 1 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.106.37:50010 is added to blk_6667093857658912327 size 67108864
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.73.188:50010 is added to blk_6667093857658912327 size 67108864
+                BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.110.160:50010 is added to blk_6667093857658912327 size 67108864
+                PacketResponder 2 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.73.188
+                PacketResponder 0 for block blk_6667093857658912327 terminating
+                Received block blk_6667093857658912327 of size 67108864 from /10.251.106.37
+            Output:
+                {
+                    "label": 0,
+                    "signals": [
+                        "successful block reception",
+                        "block storage confirmations",
+                        "normal packet responder termination"
+                    ]
+                }
+        Example 2:
+            Parsed Session Logs:
+                BLOCK* NameSystem.allocateBlock: /user/root/randtxt5/_temporary/_task_200811101024_0012_m_001014_0/part-01014. blk_4615226180823858743
+                Receiving block blk_4615226180823858743 src: /10.251.30.179:36961 dest: /10.251.30.179:50010
+            Output:
+                {
+                    "label": 1,
+                    "signals": [
+                        "incomplete block operation",
+                        "missing block storage confirmation",
+                        "early termination of block lifecycle"
+                    ]
+                }     
+        Example 3:
+            Parsed Session Logs:
+                BLOCK* NameSystem.allocateBlock: /user/root/randtxt/_temporary/_task_200811092030_0003_m_000269_0/part-00269. blk_-152459496294138933
+                Receiving block blk_-152459496294138933 src: /10.251.74.134:53158 dest: /10.251.74.134:50010
+                Receiving block blk_-152459496294138933 src: /10.251.74.134:51159 dest: /10.251.74.134:50010
+                writeBlock blk_-152459496294138933 received exception java.io.IOException: Could not read from stream
+            Output:
+                {
+                    "label": 1,
+                    "signals": [
+                        "io exception during writeBlock",
+                        "explicit failure message",
+                        "block write interruption"
+                    ]
+                }
+        """
+
 
 # Alternative: Chain-of-thought approach, HDFS-specialized version
 SYS_MSG_LOG_ANOMALY_DETECTOR_COT_ZERO_SHOT = """
@@ -1010,3 +1329,100 @@ SYS_MSG_LOG_ANALYSIS_CRITIC_FEW_SHOT = """
             Final Classification: 1     
         """
 
+
+# ========================================================================================
+# FILL USE CASE
+# ========================================================================================
+
+SYS_MSG_INTENT_LOG_ANALYZER_ZERO_SHOT = """
+        You are a log analysis agent in an intent-based system monitoring industrial nodes.
+
+        Task:
+        Given a sequence of structured JSON log events and a user intent with its timestamp,
+        determine whether the intent was fulfilled correctly, partially, or not at all.
+
+        Inputs you will receive:
+        1. A list of JSON log events, each containing: event type, timestamp, and relevant data fields.
+        2. A user intent description (what the user wanted to happen).
+        3. The timestamp of the intent (when the user issued it).
+
+        Instructions:
+        1. Separate log events into two temporal groups:
+            - PRE-INTENT: events that occurred strictly before the intent timestamp
+            - POST-INTENT: events that occurred at or after the intent timestamp
+        2. Focus your analysis on POST-INTENT events to assess fulfillment.
+        3. Use PRE-INTENT events only as context (e.g., to understand existing state).
+        4. Identify which events are directly related to the intent and which are unrelated or unexpected.
+        5. Determine the fulfillment status:
+            - FULFILLED: all expected outcomes of the intent are observed, nothing unexpected occurred
+            - PARTIAL: some expected outcomes are present, but some are missing or incomplete
+            - UNFULFILLED: no expected outcomes are observed
+            - UNEXPECTED: additional unintended changes occurred alongside or instead of the expected ones
+        6. Note any state changes on nodes not targeted by the intent.
+
+        Return only JSON:
+        {
+        "fulfillment_status": "FULFILLED" | "PARTIAL" | "UNFULFILLED" | "UNEXPECTED",
+        "pre_intent_context": ["brief observation 1", "brief observation 2"],
+        "post_intent_events": ["event summary 1", "event summary 2"],
+        "intent_related_events": ["directly relevant event 1", ...],
+        "unrelated_or_unexpected_events": ["unexpected event 1", ...],
+        "signals": ["key signal 1", "key signal 2", "key signal 3"]
+        }
+        """
+
+SYS_MSG_INTENT_EXPLANATION_GENERATOR_ZERO_SHOT = """
+        You are a log explanation agent in an intent-based node management system.
+
+        Task:
+        Explain whether and how a user's intent was fulfilled, based on structured log events
+        and the analysis output from the log analyzer agent.
+
+        Inputs you will receive:
+        1. The original user intent and its timestamp.
+        2. The structured JSON log events.
+        3. The analyzer output (fulfillment status and signals).
+
+        Instructions:
+        1. Do NOT re-evaluate or override the fulfillment status. Assume it is correct.
+        2. Explain the outcome by linking:
+            - What the user intended to happen
+            - What the logs show actually happened (post-intent)
+            - What was already in place before the intent (pre-intent context)
+            - Any unrelated or unexpected events that occurred
+        3. Be explicit about what was touched and what was not (e.g., workloads that were
+            already deployed and remained unchanged).
+        4. If the status is PARTIAL or UNEXPECTED, clearly identify the gap or the
+            unintended change.
+        5. Use concise, operator-friendly language. Avoid raw JSON field names where
+            possible — prefer natural descriptions (e.g., "node SN0009" over 
+            {"serialNumber": "SN0009"}).
+        6. Do not speculate about causes. Stick to what the logs evidence.
+
+        Output format:
+
+        - Fulfillment Status:
+            FULFILLED | PARTIAL | UNFULFILLED | UNEXPECTED
+
+        - Intent Summary:
+            What the user intended, and when.
+
+        - Pre-Intent Context:
+            Relevant state or events that existed before the intent was issued.
+
+        - What Happened:
+            A clear account of post-intent events, distinguishing intent-driven
+            changes from unrelated ones.
+
+        - Gap or Concern (if applicable):
+            What was missing, incomplete, or unexpected compared to the intent.
+
+        - Reasoning:
+            How the evidence supports the fulfillment status.
+
+        Constraints:
+        - Do not output code.
+        - Do not repeat raw log lines or full JSON objects.
+        - Do not include uncertainty statements.
+        - Keep the explanation concise but complete.
+        """
