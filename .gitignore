@@ -29,6 +29,8 @@ tests/config.py
 output/
 plots/
 tests/
+data/
+ollama.log
 
 
 
